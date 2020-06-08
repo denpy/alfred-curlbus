@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """
-This script get bus ETA from the https://curlbus.app and outputs the result in a format which Alfred (macOS) or
-Ulauncher (Linux) expects. Output is a JSON object printed to the STDOUT
+This script gets a bus ETA from the https://curlbus.app and outputs the result in a format which Alfred (macOS) or
+Ulauncher (Linux) expects. Output is a JSON object printed to the STDOUT, both Alfred and Ulauncher will run this
+script and load it's output as a JSON for further processing
 """
 from __future__ import annotations
 
@@ -51,6 +52,7 @@ def main(args):
     station_id = args.station_id
     url = urljoin(URL, str(station_id))
     try:
+        # Try to get info from Curlbus
         with urlopen(url, timeout=2) as res:
             res_bytes = res.read()
             res_text = res_bytes.decode('utf-8')

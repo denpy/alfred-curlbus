@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
-FOO
+This script get bus ETA from the https://curlbus.app and outputs the result in a format which Alfred (macOS) or
+Ulauncher (Linux) expects. Output is a JSON object printed to the STDOUT
 """
 from __future__ import annotations
 
@@ -8,46 +9,43 @@ import argparse
 import json
 import re
 import urllib
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 from urllib.parse import urljoin
 from urllib.request import urlopen
 
 THIS_SCRIPT_VERSION = (1, 0, 0)
 THIS_SCRIPT_VERSION_STR = '.'.join([str(d) for d in THIS_SCRIPT_VERSION])
+
 URL = 'https://curlbus.app/'
 BUS_NUM_AND_ETA_REGEX = re.compile(r'│(?P<bus_number>\d+).*│(?P<eta>[\d m,]+)')
 
 
-# noinspection PyShadowingNames
 def main(args):
 
-    def normalize_output(station_info: List[Tuple[str, str]], output_format: str) -> str:
+    # noinspection PyShadowingNames
+    def make_msg_obj(msg: str, output_format: str) -> Dict[str, Any]:
         """
-        Foo what is alfred format?
-        :param output_format:
-        :param station_info:
-        :return:
+        Makes a dict with fields that fit Alfred or Ulauncher format
+        More about formats:
+            https://www.alfredapp.com/help/workflows/inputs/script-filter/json/
+            http://docs.ulauncher.io/en/latest/extensions/tutorial.html#main-py
+        :param msg: a message that will be presented in Alfred or Ulauncher UI
+        :param output_format: the format of the output object ("alfred" or "ulauncher")
+        :return: a dict that contains the message in a format that Alfred ot Ulauncher can handle
         """
-        etas = []
+        # A "template" objects with specific fields per output format
         output_format_2_obj = {
             'alfred': dict(title='', valid=False, field_name='title'),
             'ulauncher': dict(name='', field_name='name')}
 
-        obj = output_format_2_obj[output_format]
+        # Get a "template" object according to the output type
+        obj = output_format_2_obj[output_format].copy()
+
+        # Get the field name we need to use to create an object that fits the output type
         field_name = obj.pop('field_name')
-        if not station_info:
-            obj[field_name] = 'No buses in the next 30 minutes'
-            etas.append(obj)
+        obj[field_name] = msg
 
-        for info in station_info:
-            bus_number, eta = info
-            obj[field_name] = f'{bus_number.strip()}: {eta.strip()}'
-            etas.append(obj)
-
-        if output_format == 'alfred':
-            etas = dict(items=etas)
-
-        return json.dumps(etas)
+        return obj
 
     # Function entry point
     station_id = args.station_id
@@ -57,26 +55,38 @@ def main(args):
             res_bytes = res.read()
             res_text = res_bytes.decode('utf-8')
 
-            # Match bus number and ETA
-            match = BUS_NUM_AND_ETA_REGEX.findall(res_text)
+        # Match bus number and ETA
+        match = BUS_NUM_AND_ETA_REGEX.findall(res_text)  # type: List[Tuple[str, str]]
     except urllib.error.HTTPError:
-        res_text = f'Invalid station ID "{station_id}"'
-        match = [('ERROR', res_text)]
+        match = [('ERROR',  f'Invalid station ID "{station_id}"')]
+    except urllib.error.URLError:
+        match = [('ERROR', 'Curlbus does not respond')]
 
-    # Normalize result
-    if args.output_format == 'raw':
-        print(res_text)
-    else:
-        normalized_output = normalize_output(match, args.output_format)
-        print(normalized_output)
+    # There is no ETA so we return a message about that
+    etas = []
+    output_format = args.output_format
+    if not match:
+        etas.append(make_msg_obj('No buses in the next 30 minutes', output_format))
+
+    # Normalize result, make objects with the bus number and ETA according to output format
+    for info in match:
+        msg = ': '.join([s.strip() for s in info])
+        etas.append(make_msg_obj(msg, output_format))
+
+    # Alfred expects to the object which looks like that {"items": [{...}, ...]}
+    if output_format == 'alfred':
+        etas = dict(items=etas)
+
+    print(json.dumps(etas))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='A script for getting a bus ETA from Curlbus service', add_help=True)
     parser.add_argument(
         '--version', '-v', '-V', action='version', help='This script version', version=THIS_SCRIPT_VERSION_STR)
-    parser.add_argument('--station-id', '-s', help='Bus station ID', required=True)
     parser.add_argument(
-        '--output-format', '-o', choices=('alfred', 'ulauncher', 'raw'), default='alfred', help='Output format')
+        '--station-id', '-s', help='Bus station ID', required=True)
+    parser.add_argument(
+        '--output-format', '-o', choices=('alfred', 'ulauncher'), default='alfred', help='Output format')
     args = parser.parse_args()
     main(args)

@@ -2,7 +2,7 @@
 
 ##### Note: to get bus ETA this workflow uses [curlbus](https://github.com/elad661/curlbus) service by [elad661](https://github.com/elad661) and it works with the Israeli transit only (at the moment).
 
-To download the workflow [use this link](curlbus.alfredworkflow) 
+To download the workflow [use this link](https://github.com/denpy/alfred-curlbus/raw/master/curlbus.alfredworkflow) 
 
 To run the workflow just type "curlbus".
 

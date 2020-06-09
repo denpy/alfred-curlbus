@@ -1,6 +1,6 @@
 ### Alfred workflow for getting bus ETA.
 
-##### Note: to get bus ETA this workflow uses [curlbus](https://github.com/elad661/curlbus) service by [elad661](https://github.com/elad661) and it works with the Israeli transit only (at the moment).
+**Note: to get bus ETA this workflow uses [curlbus](https://github.com/elad661/curlbus) service by [elad661](https://github.com/elad661) and it works with the Israeli transit only (at the moment).**
 
 To download the workflow [use this link](https://github.com/denpy/alfred-curlbus/raw/master/curlbus.alfredworkflow) 
 
@@ -8,14 +8,16 @@ To run the workflow just type "curlbus".
 
 ![sc1](images/demo.gif)
 
-##### Configuration
+#### Configuration
 The basic setup has two bus stations "Home station 🏠", "Work station 🏙" and "Station ID 🔢" option to provide any
  station ID manually.
 You have to [configure several environment variables](https://www.alfredapp.com/help/workflows/advanced/variables/) to customize the station IDs and Alfred select option titles.
  
-Those environment variables are prefixed with the "CB_FW" prefix (stands for curlbus_workflow).
+You can get a station ID (usually a 5 digits number) using [Google Maps](https://www.google.com/maps) service or using the search [here](https://bus.gov.il/?language=en#/realtime/1/0) 
 
 Here is Alfred documentation: [Using Variables in Workflows](https://www.alfredapp.com/help/workflows/advanced/variables/)
+
+Those environment variables are prefixed with the "CB_FW" prefix (stands for curlbus_workflow).
 
 `CB_WF_STATION_A_ID=12345` - first station ID.
 

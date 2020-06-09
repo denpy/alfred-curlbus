@@ -9,8 +9,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import urllib
 from typing import Any, Dict, List, Tuple
+from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
 from urllib.request import urlopen
 
@@ -52,22 +52,22 @@ def main(args):
     station_id = args.station_id
     url = urljoin(URL, str(station_id))
     try:
-        # Try to get info from Curlbus
+        # Try to get the info from Curlbus
         with urlopen(url, timeout=2) as res:
             res_bytes = res.read()
             res_text = res_bytes.decode('utf-8')
 
         # Match bus number and ETA
         match = BUS_NUM_AND_ETA_REGEX.findall(res_text)  # type: List[Tuple[str, str]]
-    except urllib.error.HTTPError:
+    except HTTPError:
         match = [('ERROR',  f'Invalid station ID "{station_id}"')]
-    except urllib.error.URLError:
+    except URLError:
         match = [('ERROR', 'Curlbus does not respond')]
 
-    # There is no ETA so we return a message about that
     etas = []
     output_format = args.output_format
     if not match:
+        # There is no ETA so we return a message about that
         etas.append(make_msg_obj('No buses in the next 30 minutes', output_format))
 
     # Normalize result, make objects with the bus number and ETA according to output format

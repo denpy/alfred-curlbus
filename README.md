@@ -2,6 +2,8 @@
 
 ##### Note: to get bus ETA this workflow uses [curlbus](https://github.com/elad661/curlbus) service by [elad661](https://github.com/elad661) and it works with the Israeli transit only (at the moment).
 
+To download the workflow [use this link](curlbus.alfredworkflow) 
+
 To run the workflow just type "curlbus".
 
 ![sc1](images/demo.gif)
@@ -13,8 +15,7 @@ You have to [configure several environment variables](https://www.alfredapp.com/
  
 Those environment variables are prefixed with the "CB_FW" prefix (stands for curlbus_workflow).
 
-Here is Alfred documentation: [Using Variables in Workflows](https://www.alfredapp.com/help/workflows/advanced
-/variables/)
+Here is Alfred documentation: [Using Variables in Workflows](https://www.alfredapp.com/help/workflows/advanced/variables/)
 
 `CB_WF_STATION_A_ID=12345` - first station ID.
 
@@ -24,8 +25,8 @@ Here is Alfred documentation: [Using Variables in Workflows](https://www.alfreda
 
 `CB_WF_SELECT_OPTION_TITLE_B=Work station 🏙 ` - any text you want, Alfred will present it as a select option.
 
-`CB_WF_PYTHON3_PATH=/usr/bin/python3` - this workflow needs Python 3.7, so either provide a full path to the Python 3.7
- executable or if it's already in `$PATH` use just `python` or `python3` according to the executable name.
+`CB_WF_PYTHON3_PATH=/usr/bin/python3` - this workflow needs Python 3.7 or higher, so either provide a full path to the
+ Python 3.7 executable or if it's already in `$PATH` use just `python` or `python3` according to the executable name.
 
 
 Icons made by 

@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+#
+# Written by denpy in 2020.
+# https://github.com/denpy
+#
 """
 This script gets a bus ETA from the https://curlbus.app and outputs the result in a format which Alfred (macOS) or
 Ulauncher (Linux) expects. Output is a JSON object printed to the STDOUT, both Alfred and Ulauncher will run this
@@ -9,7 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
 from urllib.request import urlopen
@@ -17,13 +21,32 @@ from urllib.request import urlopen
 THIS_SCRIPT_VERSION = (1, 0, 0)
 THIS_SCRIPT_VERSION_STR = '.'.join([str(d) for d in THIS_SCRIPT_VERSION])
 
-URL = 'https://curlbus.app/'
+CURLBUS_BASE_URL = 'https://curlbus.app/'
 BUS_NUM_AND_ETA_REGEX = re.compile(r'│(?P<bus_number>\d+).*│(?P<eta>[\d m,]+)')
 
 
 def main(args):
 
-    # noinspection PyShadowingNames
+    def get_etas(station_id: str) -> List[Tuple[str, str]]:
+        """
+        Get ETAs from Curlbus service
+        :param station_id: ID of the station user wish to get ETAs for
+        :return: Pairs of strings which maybe either bus numbers and ETAs or error messages
+        """
+        url = urljoin(CURLBUS_BASE_URL, station_id.strip())
+        try:
+            # Try to get the info from Curlbus
+            with urlopen(url, timeout=2) as res:
+                res_bytes = res.read()
+                res_text = res_bytes.decode('utf-8')
+
+            # Match bus number and ETA and return
+            return BUS_NUM_AND_ETA_REGEX.findall(res_text)
+        except HTTPError:
+            return [('ERROR', f'Invalid station ID "{station_id}"')]
+        except URLError:
+            return [('ERROR', 'Curlbus does not respond')]
+
     def make_msg_obj(msg: str, output_format: str) -> Dict[str, Any]:
         """
         Makes a dict with fields that fit Alfred or Ulauncher format
@@ -40,46 +63,49 @@ def main(args):
             'ulauncher': dict(name='', field_name='name')}
 
         # Get a "template" object according to the output type
-        obj = output_format_2_obj[output_format].copy()
+        msg_obj = output_format_2_obj[output_format].copy()
 
         # Get the field name we need to use to create an object that fits the output type
-        field_name = obj.pop('field_name')
-        obj[field_name] = msg
+        field_name = msg_obj.pop('field_name')
+        msg_obj[field_name] = msg
 
-        return obj
+        return msg_obj
+
+    def normalize_etas(
+            etas: List[Tuple[str, str]],
+            output_format: str) -> Union[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
+        """
+        Normalize ETA messages received from Curlbus to objects according to the format of Alfred or Ulauncher
+        :param etas: ETA messages or error messages
+        :param output_format: format that should be used for messages normalization
+        :return: normalized ETA messages or error messages
+        """
+        eta_objs = []
+
+        if not etas:
+            # There is no ETA so we return a message about that
+            eta_objs.append(make_msg_obj('No buses in the next 30 minutes', output_format))
+
+        # Normalize result, make objects with the bus number and ETA according to output format
+        for info in etas:
+            msg = ': '.join([s.strip() for s in info])
+            eta_objs.append(make_msg_obj(msg, output_format))
+
+        # Alfred expects to the object which looks like that {"items": [{...}, ...]}
+        if output_format == 'alfred':
+            return dict(items=eta_objs)
+
+        return eta_objs
 
     # Function entry point
-    station_id = args.station_id
-    url = urljoin(URL, str(station_id))
-    try:
-        # Try to get the info from Curlbus
-        with urlopen(url, timeout=2) as res:
-            res_bytes = res.read()
-            res_text = res_bytes.decode('utf-8')
+    # Get ETAs from Curlbus
+    etas = get_etas(str(args.station_id))
 
-        # Match bus number and ETA
-        match = BUS_NUM_AND_ETA_REGEX.findall(res_text)  # type: List[Tuple[str, str]]
-    except HTTPError:
-        match = [('ERROR',  f'Invalid station ID "{station_id}"')]
-    except URLError:
-        match = [('ERROR', 'Curlbus does not respond')]
+    # Normalize ETA messages according to output format
+    eta_objs = normalize_etas(etas, args.output_format)
 
-    etas = []
-    output_format = args.output_format
-    if not match:
-        # There is no ETA so we return a message about that
-        etas.append(make_msg_obj('No buses in the next 30 minutes', output_format))
-
-    # Normalize result, make objects with the bus number and ETA according to output format
-    for info in match:
-        msg = ': '.join([s.strip() for s in info])
-        etas.append(make_msg_obj(msg, output_format))
-
-    # Alfred expects to the object which looks like that {"items": [{...}, ...]}
-    if output_format == 'alfred':
-        etas = dict(items=etas)
-
-    print(json.dumps(etas))
+    # Print the final object
+    print(json.dumps(eta_objs))
 
 
 if __name__ == '__main__':

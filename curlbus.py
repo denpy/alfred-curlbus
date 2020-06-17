@@ -98,13 +98,13 @@ def main(args):
         return eta_objs
 
     # Function entry point
-    # Get ETAs from Curlbus
+    # Get bus ETAs from Curlbus
     etas = get_etas(str(args.station_id))
 
     # Normalize ETA messages according to output format
     eta_objs = normalize_etas(etas, args.output_format)
 
-    # Print the final object
+    # Print the final object so Alfred or Ulauncher could load it and process
     print(json.dumps(eta_objs))
 
 
